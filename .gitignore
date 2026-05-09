@@ -1,0 +1,13 @@
+.env
+.claude/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+vanna_chroma/
+metrics/*.jsonl
+eval/ragas_results.json

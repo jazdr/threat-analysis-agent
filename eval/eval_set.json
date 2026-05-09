@@ -1,0 +1,32 @@
+[
+  {
+    "id": "high_ip_count",
+    "question": "심각도가 High인 악성 IP가 몇 개인가요?",
+    "reference_sql": "SELECT COUNT(*) AS high_risk_ip_count\nFROM malicious_ips\nWHERE threat_severity = 'High';"
+  },
+  {
+    "id": "high_ip_list",
+    "question": "High 심각도 악성 IP를 모두 보여줘",
+    "reference_sql": "SELECT ip, country, owner, network, malicious_votes, reputation_score, threat_severity\nFROM malicious_ips\nWHERE threat_severity = 'High';"
+  },
+  {
+    "id": "country_ip_count",
+    "question": "국가별로 악성으로 판정받은 IP 개수를 집계해주세요.",
+    "reference_sql": "SELECT country,\n       COUNT(*) AS malicious_ip_count,\n       ROUND(AVG(reputation_score), 2) AS avg_reputation\nFROM malicious_ips\nWHERE malicious_votes > 0\nGROUP BY country\nORDER BY malicious_ip_count DESC;"
+  },
+  {
+    "id": "tor_malicious_ips",
+    "question": "Tor 노드로 확인된 IP들 중 악성 판정이 2개 이상인 주소와 소유 조직을 보여주세요.",
+    "reference_sql": "SELECT ip, owner, network, country, malicious_votes, threat_severity\nFROM malicious_ips\nWHERE tor_node = 'Yes'\n  AND malicious_votes >= 2\nORDER BY malicious_votes DESC;"
+  },
+  {
+    "id": "recent_cisa_kev",
+    "question": "CISA KEV 카탈로그에서 최근 추가된 취약점 5개를 보여줘",
+    "reference_sql": "SELECT cve_id, vendor_project, product, vulnerability_name, date_added, due_date, known_ransomware_campaign_use\nFROM cisa_known_exploited_vulnerabilities\nORDER BY date_added DESC\nLIMIT 5;"
+  },
+  {
+    "id": "due_soon_cisa_kev",
+    "question": "CISA KEV 중 대응 마감일이 임박한 취약점 10개를 보여줘",
+    "reference_sql": "SELECT cve_id, vendor_project, product, vulnerability_name, due_date, required_action\nFROM cisa_known_exploited_vulnerabilities\nWHERE due_date >= CURRENT_DATE\nORDER BY due_date ASC\nLIMIT 10;"
+  }
+]
