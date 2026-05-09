@@ -342,24 +342,20 @@ ORDER BY malicious_ip_count DESC;
 
 ---
 
-#### [Medium] Q5: "(상관분석) OTX 보고서와 CVE 취약점이 연결된 사례를 조인해서 보여주세요."
+#### [Medium] Q5: "'phishing' 키워드를 포함한 OTX 보고서와 연관된 CVE가 있나요?"
 ```sql
-SELECT
-    o.pulse_id,
-    o.title,
-    o.tags,
-    c.cve_id,
-    c.vendor_project,
-    c.product,
-    l.relation_type,
-    l.confidence
-FROM threat_intel_links l
-JOIN otx_threat_intel o ON l.pulse_id = o.pulse_id
-JOIN cve_vulnerabilities c ON l.cve_id = c.cve_id
-ORDER BY l.confidence DESC, o.created DESC
-LIMIT 10;
+WITH phishing_pulses AS (
+    SELECT pulse_id, title, tags, attack_ids
+    FROM otx_threat_intel
+    WHERE LOWER(tags) LIKE '%phishing%'
+)
+SELECT DISTINCT c.cve_id, c.vendor_project, c.product, p.title
+FROM cve_vulnerabilities c
+JOIN phishing_pulses p
+    ON LOWER(c.short_description) LIKE '%phish%'
+ORDER BY c.cve_id;
 ```
-**기대 결과**: 10행, `threat_intel_links`를 통해 OTX 보고서와 CVE 취약점을 조인한 상관분석 결과 (실제 Neon 적재 데이터 기준)
+**기대 결과**: 0행 (현재 적재 데이터 기준 직접 phishing-CVE 키워드 매칭 없음. SQL은 정상 실행되며 무결성 검증용 질문으로 사용)
 
 ---
 
@@ -469,6 +465,113 @@ LIMIT 5;
 ```
 **기대 결과**: 5행, 기간 내 등장 빈도 상위 태그와 첫/마지막 등장 일시, 순위 (실제 Neon 적재 데이터 기준)
 
+
+---
+
+## 3.1 추가 상관분석 질문 (5개)
+
+#### [Correlation] A1: "(상관분석) OTX 보고서와 CVE 취약점이 연결된 사례를 조인해서 보여주세요."
+```sql
+SELECT
+    o.pulse_id,
+    o.title,
+    o.tags,
+    c.cve_id,
+    c.vendor_project,
+    c.product,
+    l.relation_type,
+    l.confidence
+FROM threat_intel_links l
+JOIN otx_threat_intel o ON l.pulse_id = o.pulse_id
+JOIN cve_vulnerabilities c ON l.cve_id = c.cve_id
+ORDER BY l.confidence DESC, o.created DESC
+LIMIT 10;
+```
+**기대 결과**: 10행, `threat_intel_links` 기반 OTX-CVE 조인 결과
+
+---
+
+#### [Correlation] A2: "(상관분석) 랜섬웨어 관련 CVE와 연결된 OTX 보고서를 보여주세요."
+```sql
+SELECT
+    c.cve_id,
+    c.vendor_project,
+    c.product,
+    c.due_date,
+    o.pulse_id,
+    o.title,
+    o.tags,
+    l.confidence
+FROM threat_intel_links l
+JOIN cve_vulnerabilities c ON l.cve_id = c.cve_id
+JOIN otx_threat_intel o ON l.pulse_id = o.pulse_id
+WHERE c.known_ransomware_campaign_use = 'Known'
+   OR LOWER(o.tags || ' ' || COALESCE(o.title,'')) LIKE '%ransomware%'
+ORDER BY c.due_date ASC, l.confidence DESC
+LIMIT 10;
+```
+**기대 결과**: 10행, 랜섬웨어 맥락 CVE와 OTX 보고서 연결 결과
+
+---
+
+#### [Correlation] A3: "(상관분석) Android/Windows 제품 취약점과 관련된 OTX 위협 보고서 수를 비교해주세요."
+```sql
+SELECT
+    c.product,
+    COUNT(DISTINCT c.cve_id) AS cve_count,
+    COUNT(DISTINCT o.pulse_id) AS otx_report_count,
+    ROUND(AVG(l.confidence), 2) AS avg_confidence
+FROM threat_intel_links l
+JOIN cve_vulnerabilities c ON l.cve_id = c.cve_id
+JOIN otx_threat_intel o ON l.pulse_id = o.pulse_id
+WHERE c.product IN ('Android', 'Windows', 'Pixel', 'Defender')
+GROUP BY c.product
+ORDER BY cve_count DESC, otx_report_count DESC;
+```
+**기대 결과**: 3행, 제품별 CVE 수와 연결된 OTX 보고서 수 비교
+
+---
+
+#### [Correlation] A4: "(상관분석) ATT&CK ID가 있는 OTX 보고서와 연결된 CVE를 신뢰도 순으로 보여주세요."
+```sql
+SELECT
+    o.attack_ids,
+    c.cve_id,
+    c.vendor_project,
+    c.product,
+    o.title,
+    l.confidence
+FROM threat_intel_links l
+JOIN otx_threat_intel o ON l.pulse_id = o.pulse_id
+JOIN cve_vulnerabilities c ON l.cve_id = c.cve_id
+WHERE o.attack_ids IS NOT NULL
+  AND o.attack_ids <> 'Unknown'
+ORDER BY l.confidence DESC, o.created DESC
+LIMIT 10;
+```
+**기대 결과**: 10행, ATT&CK 기법이 있는 OTX 보고서와 CVE 연결 결과
+
+---
+
+#### [Correlation] A5: "(상관분석) 최근 OTX 보고서와 대응 마감일이 임박한 CVE를 함께 보여주세요."
+```sql
+SELECT
+    o.created,
+    o.title,
+    c.cve_id,
+    c.vendor_project,
+    c.product,
+    c.due_date,
+    c.known_ransomware_campaign_use,
+    l.confidence
+FROM threat_intel_links l
+JOIN otx_threat_intel o ON l.pulse_id = o.pulse_id
+JOIN cve_vulnerabilities c ON l.cve_id = c.cve_id
+WHERE c.due_date IS NOT NULL
+ORDER BY c.due_date ASC, o.created DESC
+LIMIT 10;
+```
+**기대 결과**: 10행, OTX 보고서와 대응 마감일이 임박한 CVE 연결 결과
 ---
 
 ## 4. 데이터 샘플
