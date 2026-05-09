@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS cve_vulnerabilities (
     cwes TEXT
 );
 
-COMMENT ON TABLE cve_vulnerabilities IS 'CISA KEV 기반 취약점 및 대응 마감 정보';
+COMMENT ON TABLE cve_vulnerabilities IS '상관분석 및 샘플 질의를 위한 CVE 취약점 요약 테이블';
 COMMENT ON COLUMN cve_vulnerabilities.cve_id IS '국제적으로 통용되는 취약점 고유 식별자';
 COMMENT ON COLUMN cve_vulnerabilities.vendor_project IS '취약점이 존재하는 공급업체명';
 COMMENT ON COLUMN cve_vulnerabilities.product IS '취약한 제품 또는 서비스명';
@@ -348,7 +348,7 @@ WHERE threat_severity = 'High';
 질문: 2026년 4월 28일에 CISA KEV에 추가된 취약점 목록을 보여주세요.
 SQL:
 SELECT cve_id, vendor_project, product, vulnerability_name
-FROM cve_vulnerabilities
+FROM cisa_known_exploited_vulnerabilities
 WHERE date_added = DATE '2026-04-28';
 
 질문: 데이터 소스가 VirusTotal인 도메인 중 평판 점수가 가장 낮은 TOP 5를 알려주세요.

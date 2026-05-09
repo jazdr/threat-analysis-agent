@@ -26,9 +26,19 @@ notebooks/threat_intel_neon_gradio_colab.ipynb
 
 Colab 첫 단계에서 이 repo를 clone합니다.
 
+```bash
+%%bash
+if [ -d threat-analysis-agent ]; then
+  git -C threat-analysis-agent pull --ff-only
+else
+  git clone https://github.com/jazdr/threat-analysis-agent.git
+fi
+```
+
 ```python
-!git clone https://github.com/jazdr/threat-analysis-agent.git
 %cd threat-analysis-agent
+!pwd
+!git log --oneline -1
 ```
 
 이후 노트북에서 다음 값을 직접 입력합니다.
